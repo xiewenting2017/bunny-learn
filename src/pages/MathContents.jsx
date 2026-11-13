@@ -1,15 +1,9 @@
-import { MATH_BOOKS } from '../data/math'
 import KnowledgeList from './KnowledgeList'
 
-function MathContents({ onBack }) {
+function MathContents({ grade, onBack }) {
+  const gradeLabel = grade === 'grade-2' ? '二年级' : '一年级'
   return (
-    <KnowledgeList
-      title="数学 · 一年级"
-      grade="一年级"
-      subject="math"
-      books={MATH_BOOKS}
-      onBack={onBack}
-    />
+    <KnowledgeList title={`数学 · ${gradeLabel}`} subject="math" grade={grade} onBack={onBack} />
   )
 }
 

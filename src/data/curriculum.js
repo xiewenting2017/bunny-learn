@@ -37,7 +37,12 @@ export function getTopic(subject, id) {
   }
 }
 
-// 获取某个学科的全部知识点（用于 generateScript.js 遍历）
-export function getKnowledgeList(subject) {
-  return SUBJECT_DATA[subject] ?? []
+// grade: 'grade-1' | 'grade-2' → 只返回对应年级的条目
+// 不传 grade → 返回全部（兼容旧调用）
+export function getKnowledgeList(subject, grade) {
+  const list = SUBJECT_DATA[subject] ?? []
+  if (!grade) return list
+
+  const gradeLabel = grade === 'grade-2' ? '二年级' : '一年级'
+  return list.filter((item) => item.grade?.startsWith(gradeLabel))
 }

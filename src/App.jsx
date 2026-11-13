@@ -61,11 +61,11 @@ function App() {
         />
       )
     } else if (subject?.id === 'math') {
-      page = <MathContents onBack={() => setScreen('subjects')} />
+      page = <MathContents grade={grade} onBack={() => setScreen('subjects')} />
     } else if (subject?.id === 'english') {
-      page = <EnglishContents onBack={() => setScreen('subjects')} />
+      page = <EnglishContents grade={grade} onBack={() => setScreen('subjects')} />
     } else if (subject?.id === 'science') {
-      page = <ScienceContents onBack={() => setScreen('subjects')} />
+      page = <ScienceContents grade={grade} onBack={() => setScreen('subjects')} />
     } else {
       page = <Contents subject={subject} onBack={() => setScreen('subjects')} />
     }

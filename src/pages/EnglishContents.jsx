@@ -1,12 +1,9 @@
 import KnowledgeList from './KnowledgeList'
 
-function EnglishContents({ onBack }) {
+function EnglishContents({ grade, onBack }) {
+  const gradeLabel = grade === 'grade-2' ? '二年级' : '一年级'
   return (
-    <KnowledgeList
-      title="英语 · 一年级"
-      subject="english"
-      onBack={onBack}
-    />
+    <KnowledgeList title={`英语 · ${gradeLabel}`} subject="english" grade={grade} onBack={onBack} />
   )
 }
 

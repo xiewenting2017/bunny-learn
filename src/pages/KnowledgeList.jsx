@@ -4,8 +4,8 @@ import { getKnowledgeList } from '../data/curriculum'
 
 // 通用知识点列表：数学、语文、英语、科学共用
 // 顶部 tab 切换上/下册，每个 tab 内按 module 分组
-function KnowledgeList({ title, subject, onBack, banner }) {
-  const items = getKnowledgeList(subject)
+function KnowledgeList({ title, subject, grade, onBack, banner }) {
+  const items = getKnowledgeList(subject, grade)
   const navigate = useNavigate()
 
   // 按 grade 分组，得到 ["一年级上册", "一年级下册"]
