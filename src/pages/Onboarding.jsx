@@ -97,7 +97,7 @@ function Onboarding({ grade, onGradeChange, onContinue }) {
       </div>
 
       <p className="mt-3 text-center text-xs text-slate-400">
-        其他年级即将开放，先从一年级开始吧 ✨
+        三年级即将开放，先从一二年级开始吧 ✨
       </p>
 
       {/* 继续 */}

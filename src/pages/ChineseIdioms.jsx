@@ -100,34 +100,42 @@ function ChineseIdioms({ onBack, onStart }) {
       {/* 全部成语 */}
       <h2 className="mt-6 text-sm font-bold text-slate-500">全部成语</h2>
 
-      <div className="mt-3 grid grid-cols-3 gap-3">
+      <div className="mt-3 grid grid-cols-2 gap-3">
         {IDIOMS.map((idiom) => (
-          <div
+          <button
             key={idiom.id}
-            className="flex min-h-[96px] flex-col items-center justify-center gap-1 rounded-2xl border-2 border-slate-200 bg-white px-2 py-3 transition hover:border-violet-300 hover:bg-violet-50/50"
+            type="button"
+            onClick={() => onStart(idiom)}
+            className="group flex flex-col items-stretch gap-2 rounded-2xl border-2 border-slate-200 bg-white p-3 text-left transition hover:border-violet-300 hover:bg-violet-50/50 active:scale-[0.98]"
           >
-            <span className="whitespace-pre-line text-center text-sm font-semibold leading-snug text-slate-700">
-              {formatTitle(idiom.title)}
-            </span>
-            <button
-              type="button"
-              onClick={() => play(idiom.id, idiom.speech)}
-              aria-label={`播放${idiom.title}的故事`}
-              className={`mt-1 flex h-7 w-7 items-center justify-center rounded-full transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400 ${
-                playing === idiom.id
-                  ? 'bg-violet-500'
-                  : 'bg-violet-50 hover:bg-violet-100'
-              }`}
-            >
-              <span className="text-xs" aria-hidden="true">
-                {playing === idiom.id ? '🔊' : '🔈'}
+            <div className="flex items-center justify-between">
+              <span className="whitespace-pre-line text-center text-base font-bold leading-snug text-slate-700">
+                {formatTitle(idiom.title)}
               </span>
-            </button>
-          </div>
+              <span
+                role="button"
+                aria-label={`播放${idiom.title}的故事`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  play(idiom.id, idiom.speech)
+                }}
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition active:scale-90 ${
+                  playing === idiom.id
+                    ? 'bg-violet-500 text-white'
+                    : 'bg-violet-50 text-violet-500 hover:bg-violet-100'
+                }`}
+              >
+                <span className="text-xs">{playing === idiom.id ? '🔊' : '🔈'}</span>
+              </span>
+            </div>
+            <div className="mt-auto flex items-center gap-1 text-xs font-medium text-violet-500 opacity-0 transition group-hover:opacity-100">
+              开始阅读 →
+            </div>
+          </button>
         ))}
 
         <div className="flex min-h-[96px] flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-slate-200 px-2 py-3 text-slate-300">
-          <span className="text-sm font-semibold">……</span>
+          <span className="text-sm font-semibold">更多故事</span>
           <span className="text-[10px]">敬请期待</span>
         </div>
       </div>

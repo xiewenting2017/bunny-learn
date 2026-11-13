@@ -265,4 +265,25 @@ export const englishData = [
       { question: '"can" 的意思是？', options: ['不会', '会/能够', '想要'], answer: '会/能够' },
     ],
   },
+
+  // ── 二年级上册 ──
+  { id: 'greetings_review', name: '问候与告别', module: '问候', grade: '二年级上册' },
+  { id: 'numbers_11_20', name: 'Numbers 11-20', module: '数字', grade: '二年级上册' },
+  { id: 'colors_review', name: '颜色复习', module: '颜色', grade: '二年级上册' },
+  { id: 'stationery', name: 'Pencil, Ruler, Eraser, Bag', module: '文具', grade: '二年级上册' },
+  { id: 'family_extended', name: 'Father, Mother, Brother, Sister, Grandpa, Grandma', module: '家庭', grade: '二年级上册' },
+  { id: 'body_parts', name: 'Head, Eye, Ear, Nose, Mouth, Hand', module: '身体部位', grade: '二年级上册' },
+  { id: 'animals_review', name: 'Cat, Dog, Bird, Fish, Panda', module: '动物', grade: '二年级上册' },
+  { id: 'food_review', name: 'Apple, Banana, Rice, Milk, Bread', module: '食物', grade: '二年级上册' },
+
+  // ── 二年级下册 ──
+  { id: 'numbers_21_100', name: 'Numbers 21-100', module: '数字', grade: '二年级下册' },
+  { id: 'seasons_weather', name: 'Spring/Summer/Autumn/Winter, Sunny/Rainy/Snowy', module: '季节与天气', grade: '二年级下册' },
+  { id: 'classroom_items', name: '教室物品', module: '教室', grade: '二年级下册' },
+  { id: 'sports_activities', name: 'Play, Run, Jump, Read, Sing', module: '运动与活动', grade: '二年级下册' },
+  { id: 'transport', name: 'Car, Bus, Bike, Train, Plane', module: '交通工具', grade: '二年级下册' },
+  { id: 'clothing', name: 'Shirt, Skirt, Hat, Shoes', module: '服装', grade: '二年级下册' },
+  { id: 'feelings', name: 'Happy, Sad, Angry, Tired', module: '情绪与感受', grade: '二年级下册' },
+  { id: 'days_months', name: 'Days of week, Months', module: '日期', grade: '二年级下册' },
+  { id: 'prepositions_extended', name: 'In/On/Under, Left/Right', module: '方位', grade: '二年级下册' },
 ]
