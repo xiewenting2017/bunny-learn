@@ -85,6 +85,94 @@ const STORIES = {
     summary: '农夫捡到一只撞死的兔子后，天天守在树桩边等，田地都荒废了。',
     moral: '意外的好运气不会天天有，想要收获就要自己努力。',
   },
+  xuanliang: {
+    title: '悬梁刺股',
+    subtitle: '刻苦学习的古人',
+    image: `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(
+      "Children's storybook watercolor illustration, a Chinese boy in hanfu studying at night, his hair tied to a rafter beam, warm candlelight, wooden desk with books, cute gentle style, soft pastel colors, no text",
+    )}&image_size=landscape_16_9`,
+    story:
+      '从前有两个很爱学习的人，一个叫孙敬，一个叫苏秦。孙敬每天读书读到很晚很晚，有时候太困了就会打瞌睡。为了不让自己睡着，他想了个办法：把自己的头发用绳子拴在房梁上。这样一来，只要他一低头打瞌睡，头发就会被绳子扯一下，疼得他立刻清醒过来，继续读书。苏秦呢，他也怕自己打瞌睡，就准备了一把锥子放在桌子上。每当困得要睡着了，他就用锥子在自己的大腿上刺一下，一疼就不困了，接着读下去。后来，孙敬成了很有学问的老师，苏秦成了能言善辩的政治家。',
+    summary: '孙敬把头发拴在房梁上，苏秦用锥子扎大腿，怕自己打瞌睡刻苦读书。',
+    moral: '想学好本领，就要不怕辛苦，有毅力坚持下去。',
+  },
+  nangying: {
+    title: '囊萤映雪',
+    subtitle: '车胤和孙康的故事',
+    image: `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(
+      "Children's storybook watercolor illustration, a little Chinese boy reading a book by the light of fireflies in a cloth bag, summer night with stars, cute gentle style, soft pastel colors, no text",
+    )}&image_size=landscape_16_9`,
+    story:
+      '古时候有两个爱读书的小朋友，一个叫车胤，一个叫孙康。车胤家里很穷，晚上买不起灯油，没法看书。夏天的一个晚上，他看见许多萤火虫飞来飞去，尾巴上一闪一闪地发光。车胤灵机一动，找了一个白纱布袋子，捉了几十只萤火虫装进去。袋子里亮闪闪的，就像一盏小灯笼。车胤就借着这萤囊的光，认真地读起书来。孙康呢，他也是家里穷得买不起灯油。有一年冬天的夜里，他一觉醒来，看见窗外亮堂堂的，原来是下了大雪！地上的雪把月光反射得好亮好亮。孙康赶紧穿上衣服，跑到雪地里，借着雪地反射的光，读起书来。',
+    summary: '车胤捉萤火虫装在袋子里照亮，孙康借着雪地里的反光读书，都很刻苦。',
+    moral: '办法总比困难多，勤奋的人总能找到学习的好方法。',
+  },
+  feiqin: {
+    title: '废寝忘食',
+    subtitle: '颜回读书的故事',
+    image: `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(
+      "Children's storybook watercolor illustration, a young Chinese scholar in hanfu deeply focused on reading ancient books, books scattered on wooden desk, warm study room, cute gentle style, soft pastel colors, no text",
+    )}&image_size=landscape_16_9`,
+    story:
+      '孔子有一个很喜欢的学生，叫颜回。颜回非常聪明，也非常爱学习。有一次，孔子在讲一个很重要的道理，颜回听得入了迷，眼睛一眨不眨，连吃饭都忘了。同学们都吃完饭回来继续听课了，颜回还坐在那里一动不动，脑子里全是老师讲的道理。到了晚上，同学们都回去睡觉了，颜回还在房间里思考老师讲的内容。他一会儿翻翻书，一会儿写写画画，连睡觉都忘了。孔子知道了，笑着说：颜回真是废寝忘食啊，这样学习一定会有大成就的。',
+    summary: '颜回读书太认真了，连吃饭睡觉都忘了。',
+    moral: '一心一意地做一件事，忘记吃饭睡觉也没关系，这样才能学好。',
+  },
+  shoubu: {
+    title: '手不释卷',
+    subtitle: '吕蒙读书的故事',
+    image: `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(
+      "Children's storybook watercolor illustration, a Chinese general in ancient armor sitting on a horse holding a book, a king speaking to him, outdoor military camp, cute gentle style, soft pastel colors, no text",
+    )}&image_size=landscape_16_9`,
+    story:
+      '三国时候，有一个大将军叫吕蒙。他从小当兵，没有读过书，孙权就劝他说：你现在当了大将军，要多读书，才能更聪明地打仗啊。吕蒙觉得自己很忙，没有时间。孙权又说：你再忙，能比我还忙吗？我每天都抽出时间读书，收获很大呢。吕蒙听了，觉得很有道理。从那以后，他每天不管多忙，都要抽出时间读书。他骑在马上读，睡觉前读，吃饭后也读，手里总是拿着一本书不肯放下。过了一段时间，吕蒙见到孙权，跟他讨论起国家大事来，说的话非常有道理。孙权惊讶地说：吕蒙变了，现在他有学问了，不再是以前那个粗鲁的将军了！',
+    summary: '吕蒙在孙权的劝说下，手不离书地读书，后来成了有学问的大将军。',
+    moral: '只要想学习，再忙也能挤出时间，什么时候开始都不晚。',
+  },
+  weibian: {
+    title: '韦编三绝',
+    subtitle: '孔子读易经的故事',
+    image: `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(
+      "Children's storybook watercolor illustration, Confucius in flowing robes reading ancient bamboo scrolls with leather straps, candlelit study room, cute gentle style, soft pastel colors, no text",
+    )}&image_size=landscape_16_9`,
+    story:
+      '古时候还没有纸，书都是把竹子削成竹简，然后用皮绳一根一根地串起来的。孔子晚年的时候，特别喜欢读一本叫《易经》的书。《易经》很深奥，里面讲了天地万物变化的道理。孔子读第一遍的时候，觉得看不懂，就再读一遍。第二遍还有很多地方不懂，他就读第三遍。就这样，他翻来覆去地读，把串竹筒的皮绳都磨断了三次！每断一次，他就重新找一根结实的皮绳，把竹简串好，继续读。有人问他：您读了这么多遍，还没读完吗？孔子笑着说：如果让我再多活几年，我就能把《易经》学得更精通啦！',
+    summary: '孔子读《易经》，把串书的皮绳磨断了三次，还在不停地读。',
+    moral: '一本好书要反复读，读得遍数越多，理解就越深。',
+  },
+  chengmen: {
+    title: '程门立雪',
+    subtitle: '杨时拜见老师',
+    image: `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(
+      "Children's storybook watercolor illustration, two young Chinese scholars standing in deep snow outside a traditional Chinese gate, winter snow scene, cute gentle style, soft pastel colors, no text",
+    )}&image_size=landscape_16_9`,
+    story:
+      '宋朝的时候，有两个很爱学习的年轻人，一个叫杨时，一个叫游酢。他们听说程颐老师很有学问，就一起去拜访他。那天天气很冷，北风呼呼地刮着，还下着大雪。他们来到程老师家门口，刚好遇到程老师在睡觉。游酢说：我们把老师叫醒吧。杨时摇摇头说：老师累了，让他好好休息，我们在外面等一等吧。于是他们就站在雪地里等。雪越下越大，他们的肩膀上、头上都落满了雪，变成了两个大雪人。可是他们谁也没有走开，一直站着等。过了好久，程老师终于醒来了，打开门一看，看见两个年轻人站在雪里，吓了一跳。杨时恭敬地说：老师，我们想向您请教问题。程老师感动极了，从此把所有的学问都耐心地教给了他们。',
+    summary: '杨时和游酢去拜见老师，老师在睡觉，他们就站在雪地里等。',
+    moral: '尊敬老师，有礼貌，同时要有耐心，这样才能学到真本事。',
+  },
+  niujiao: {
+    title: '牛角挂书',
+    subtitle: '李密勤学的故事',
+    image: `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(
+      "Children's storybook watercolor illustration, a young Chinese boy riding an ox with a book tied to the ox horn, countryside path with willow trees, warm spring day, cute gentle style, soft pastel colors, no text",
+    )}&image_size=landscape_16_9`,
+    story:
+      '隋朝有个叫李密的小朋友，从小就很聪明，也很爱读书。可是他家里很穷，没有钱买灯油，也没有钱供他上学。后来，李密听说有个山脚下住着一个很有学问的老先生，就决定去拜他为师。可是他家离老先生的家很远很远，走路要好几天呢。李密想了想，就想出了一个好办法。他跟家里人借了一头牛，骑在牛背上出发了。临行前，他把一本厚厚的书用绳子拴好，挂在牛角上。这样一来，牛走路的时候，李密就可以骑着牛，低着头读书啦。一路上，他不管是上坡还是下坡，都手不释卷，认真地读着。等他走到老先生家的时候，那本书他已经读了好几遍了。',
+    summary: '李密骑牛出门，把书挂在牛角上，一边赶路一边读书。',
+    moral: '只要想学习，什么地方什么时候都可以读书。',
+  },
+  tiechu: {
+    title: '铁杵成针',
+    subtitle: '老婆婆磨针的启示',
+    image: `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(
+      "Children's storybook watercolor illustration, a little boy watching an old woman grinding an iron rod with a stone by a river, green bamboo forest, peaceful scenery, cute gentle style, soft pastel colors, no text",
+    )}&image_size=landscape_16_9`,
+    story:
+      '大诗人李白小时候很聪明，可是他也很贪玩。有一天，他趁老师不在，偷偷溜出了私塾，跑到小河边玩。他看见河边有一个老婆婆，坐在石头上，手里拿着一根又粗又长的大铁棒，在另一块石头上磨呀磨呀。李白觉得很奇怪，就跑过去问：老婆婆，您在做什么呀？老婆婆抬起头，笑着说：我在磨绣花针呀。李白大吃一惊：这么粗的铁棒，要磨成细细的绣花针，那得磨到什么时候呀？老婆婆说：没关系，只要我每天都磨一点，总有一天会磨成的。李白听了，心里一下子明白了。他不好意思再玩了，赶紧跑回学校，从此以后认认真真地读书，再也不逃学了。后来，李白成了唐朝最有名的大诗人。',
+    summary: '李白看到老婆婆把粗铁棒磨成绣花针，明白了只要坚持就能成功。',
+    moral: '不管做什么事，只要坚持不懈，就一定能成功。',
+  },
 }
 
 function IdiomStory({ idiom, onBack, onFinish }) {
