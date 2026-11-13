@@ -55,6 +55,7 @@ function App() {
     if (subject?.id === 'chinese') {
       page = (
         <ChineseContents
+          grade={grade}
           onBack={() => setScreen('subjects')}
           onOpenIdioms={() => setScreen('idioms')}
         />
@@ -71,6 +72,7 @@ function App() {
   } else if (screen === 'idioms') {
     page = (
       <ChineseIdioms
+        grade={grade}
         onBack={() => setScreen('contents')}
         onStart={(item) => {
           setIdiom(item)
