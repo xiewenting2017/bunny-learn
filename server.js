@@ -1,6 +1,8 @@
 import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
+import { randomUUID } from 'crypto'
+import { Buffer } from 'node:buffer'
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -96,6 +98,242 @@ function sendAiError(res, error) {
     status === 503 ? error.message : 'AI 生成失败，请稍后重试'
   res.status(status).json({ error: message })
 }
+
+// ── 火山引擎豆包 TTS 语音合成 ────────────────────────────────────────
+// 架构说明：
+//   上游（火山）V3 HTTP 本身就是 Chunked 流式 —— 每个 JSON 行带一段 base64 audio。
+//   后端把上游的 chunk 直接 base64 解码成二进制 mp3，立刻 res.write() 推给前端，
+//   不攒齐！这样前端能在收到第一个 chunk (~200ms) 就开始播放，
+//   而不是等全部合成完 (~800ms) 才收到第一个字节。
+//
+// 前端用 fetch + ReadableStream 边收边攒成 Blob，再喂给 Audio 播放。
+// 浏览器会自动流式播 Blob URL —— 不用 MediaSource，兼容性最好。
+//
+// 依赖：Node.js 18+ 自带 fetch/crypto，零第三方。
+
+const TTS_DEFAULT_SPEAKER = 'zh_female_xueayi_saturn_bigtts' // 雪爱伊 儿童友好
+const TTS_RESOURCE_ID = 'seed-tts-1.0' // 对应上面这个 bigtts 1.0 音色
+const TTS_ENDPOINT_V3 = 'https://openspeech.bytedance.com/api/v3/tts/unidirectional'
+
+// 准备上游请求的 headers 和 body —— 两种鉴权（Ark / 豆包语音控制台）自动检测
+function buildTtsRequest(text, speaker) {
+  const apiKey = process.env.TTS_API_KEY
+  const appId = process.env.TTS_APP_ID
+  const accessKey = process.env.TTS_ACCESS_KEY
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Api-Resource-Id': process.env.TTS_RESOURCE_ID || TTS_RESOURCE_ID,
+    'X-Api-Request-Id': randomUUID(),
+  }
+
+  if (appId && accessKey) {
+    headers['X-Api-App-Id'] = appId
+    headers['X-Api-Access-Key'] = accessKey
+  } else if (apiKey) {
+    headers['X-Api-Key'] = apiKey
+  } else {
+    const err = new Error(
+      'TTS 未配置：请设 TTS_API_KEY 或 TTS_APP_ID+TTS_ACCESS_KEY',
+    )
+    err.status = 503
+    throw err
+  }
+
+  const body = JSON.stringify({
+    user: { uid: 'bunny-learn-kid' },
+    namespace: 'BidirectionalTTS',
+    req_params: {
+      text,
+      speaker,
+      audio_params: { format: 'mp3', sample_rate: 24000 },
+      additions: {
+        disable_markdown_filter: true,
+        disable_emoji_filter: false,
+        max_length_to_filter_parenthesis: 0,
+      },
+    },
+  })
+
+  return { headers, body }
+}
+
+// ── 把文本按标点切成短句（支持中英混合）────────────────────────────
+// 规则：遇到中文/英文句末标点就切，连切合并为一个分隔符，空句子丢掉。
+// 兜底：整段不超过 40 字时不再切（短句对 TTS 反而更快）。
+// 例："你好呀！今天天气真好。我们一起玩吧～" → ["你好呀！", "今天天气真好。", "我们一起玩吧～"]
+function splitIntoSentences(text) {
+  // 中英文句末标点都算（多叠标点保留最后一个即可）
+  const SPLIT_RE = /[。！？!?；;～\.\s]+/g
+  const raw = text.split(SPLIT_RE)
+  const marks = text.match(SPLIT_RE) || []
+
+  const sentences = []
+  for (let i = 0; i < raw.length; i++) {
+    const part = raw[i].trim()
+    if (!part) continue
+    // 把吃掉的标点加回去（最后一个有效句子可能没标点，保留原文尾巴）
+    const mark = marks[i] || ''
+    sentences.push(part + mark.trim())
+  }
+
+  // 兜底：整段没标点 → 退化成一句
+  if (sentences.length === 0) return [text]
+
+  // 单句过长（>80字）→ 按逗号/顿号再切一次
+  const result = []
+  for (const s of sentences) {
+    if (s.length <= 80) {
+      result.push(s)
+    } else {
+      const sub = s.split(/[，,、]/).map((p) => p.trim()).filter(Boolean)
+      for (const sub of sub) result.push(sub)
+    }
+  }
+  return result
+}
+
+// ── 一次上游 TTS 请求，拿到所有二进制 chunk ──────────────────────────
+// 用独立 timeout 保证上游 10s 不返回就立刻失败（不依赖前端断开）
+async function fetchSentenceAudio(sentence, speaker, signal) {
+  const { headers, body } = buildTtsRequest(sentence, speaker)
+
+  // 校验 headers 里的 key 是否含非 ASCII（Node.js fetch 会直接挂住）
+  const headerIssues = Object.entries(headers).filter(([, v]) =>
+    typeof v === 'string' && /[^\x00-\x7F]/.test(v),
+  )
+  if (headerIssues.length > 0) {
+    throw new Error(
+      `TTS 配置错误：header 含非 ASCII 字符 → ${headerIssues.map(([k]) => k).join(', ')}，请在 .env 里填真实的 API Key`,
+    )
+  }
+
+  // 双保险：上游独立 10s timeout + 前端 disconnect signal
+  const upstreamCtrl = new AbortController()
+  const timer = setTimeout(() => upstreamCtrl.abort(new Error('上游 TTS timeout 10s')), 10000)
+  signal?.addEventListener('abort', () => upstreamCtrl.abort(), { once: true })
+
+  let upstream
+  try {
+    upstream = await fetch(TTS_ENDPOINT_V3, {
+      method: 'POST',
+      headers,
+      body,
+      signal: upstreamCtrl.signal,
+    })
+  } catch (err) {
+    clearTimeout(timer)
+    if (upstreamCtrl.signal.reason) throw new Error(upstreamCtrl.signal.reason.message)
+    throw err
+  }
+  clearTimeout(timer)
+
+  if (!upstream.ok) {
+    const t = await upstream.text().catch(() => '')
+    console.error('[TTS] 子句上游 HTTP', upstream.status, t.slice(0, 200))
+    throw new Error(`子句上游 ${upstream.status}: ${t.slice(0, 120)}`)
+  }
+
+  // 流式读上游的 JSON 行，立刻 base64 → 二进制，累积到 chunks
+  const reader = upstream.body.getReader()
+  const decoder = new TextDecoder('utf-8')
+  const chunks = []
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    let idx
+    while ((idx = buffer.indexOf('\n')) !== -1) {
+      const line = buffer.slice(0, idx).trim()
+      buffer = buffer.slice(idx + 1)
+      if (!line) continue
+
+      let json
+      try { json = JSON.parse(line) } catch { continue }
+      if (json.error) break
+      if (json.audio) chunks.push(Buffer.from(json.audio, 'base64'))
+      if (json.event === 'Finished') break
+    }
+  }
+
+  // 合并所有 chunk 为一段 Buffer，方便前端一次性收到"这一句的完整音频"
+  if (chunks.length === 0) return null
+  return Buffer.concat(chunks)
+}
+
+// POST /api/tts  —— 按标点切分逐句调用 TTS，顺序拼接到前端
+// Body: { text: '要朗读的文字', speaker?: '音色 ID' }
+// 返回: audio/mpeg 二进制流（Chunked Transfer-Encoding，多句 mp3 依次拼接）
+app.post('/api/tts', async (req, res) => {
+  const text = String(req.body?.text ?? '').trim()
+
+  if (!text) return res.status(400).json({ error: '缺少 text 参数' })
+  if (text.length > 800) return res.status(400).json({ error: '文本过长（最多 800 字）' })
+
+  const speaker = String(req.body?.speaker ?? '').trim() || TTS_DEFAULT_SPEAKER
+
+  const sentences = splitIntoSentences(text)
+  console.log(`[TTS] 分句 · 原文 ${text.length} 字 → ${sentences.length} 句`)
+
+  const abort = new AbortController()
+  let firstByteTime = null
+
+  req.on('close', () => abort.abort())
+
+  let headersSent = false
+
+  try {
+    // 逐句串行调用（串行是为了保证音频顺序正确 + 不触发上游并发限流）
+    for (let i = 0; i < sentences.length; i++) {
+      const sentence = sentences[i]
+      if (!sentence.trim()) continue
+
+      if (abort.signal.aborted) break
+
+      const start = Date.now()
+      const audio = await fetchSentenceAudio(sentence, speaker, abort.signal)
+      if (!audio) continue // 空句或上游没给 audio → 跳过
+
+      // 第一句成功了才发 headers（之前失败能直接返回 JSON 错误）
+      if (!headersSent) {
+        res.setHeader('Content-Type', 'audio/mpeg')
+        res.setHeader('Cache-Control', 'no-cache, no-transform')
+        res.flushHeaders()
+        headersSent = true
+        firstByteTime = start
+      }
+
+      res.write(audio) // 立刻推给前端（这一句的完整音频）
+      console.log(`[TTS] 句 ${i + 1}/${sentences.length} · ${sentence.length}字 · ${audio.length}B · ${Date.now() - start}ms`)
+    }
+
+    if (!headersSent) {
+      // 全跳过了（没有一句成功）
+      if (!res.writableEnded) res.status(502).json({ error: 'TTS 未返回音频数据' })
+      return
+    }
+
+    console.log(`[TTS] 完成 · 共 ${sentences.length} 句 · 首字节→结束 ${Date.now() - firstByteTime}ms`)
+    res.end()
+  } catch (err) {
+    if (abort.signal.aborted) {
+      console.log('[TTS] 前端已断开，已回收')
+      return
+    }
+    console.error('[TTS] 异常:', err.message)
+    if (!res.writableEnded) {
+      // 还没发 headers → 能返回 JSON 错误
+      if (!headersSent) {
+        res.status(502).json({ error: err.message })
+      } else {
+        try { res.end() } catch {}
+      }
+    }
+  }
+})
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() })

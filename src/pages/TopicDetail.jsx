@@ -26,8 +26,11 @@ function TopicDetail() {
   const [lastRawResponse, setLastRawResponse] = useState(null)
   const [currentIdx, setCurrentIdx] = useState(0)  // 当前是第几轮（0-based）
   const [roundDone, setRoundDone] = useState(false)  // 一整轮做完了
+  const [ttsLoading, setTtsLoading] = useState(false)
+  const [ttsPlaying, setTtsPlaying] = useState(false)
 
-  // 记录最近一次请求的 key（subject + id），防止 StrictMode 下二次触发脏数据
+  // Audio 实例，切换讲解内容时要 stop 再重新 play
+  const audioRef = useRef(null)
   const loadKeyRef = useRef(null)
 
   // 按顺序轮询：round-robin，0→1→2→3→4→0（回到0时触发 roundDone）
@@ -158,6 +161,100 @@ function TopicDetail() {
     alert('已在浏览器控制台打印 AI 原始数据，请按 F12 查看 🐰')
   }
 
+  // 切换播放/暂停 —— 流式 fetch /api/tts，边收边播
+  const handleToggleTTS = useCallback(async () => {
+    const text = bank?.explanation
+    if (!text) return
+
+    // 正在播放 → 暂停
+    if (audioRef.current && !audioRef.current.paused) {
+      audioRef.current.pause()
+      setTtsPlaying(false)
+      return
+    }
+
+    // 已经缓存了 audio src 但被暂停过 → 直接 resume
+    if (audioRef.current && audioRef.current.src) {
+      try {
+        await audioRef.current.play()
+        setTtsPlaying(true)
+      } catch {
+        setTtsPlaying(false)
+      }
+      return
+    }
+
+    // 第一次播放 → 流式 fetch
+    setTtsLoading(true)
+    const startedAt = performance.now()
+
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+        signal: AbortSignal.timeout(20000),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || `TTS ${res.status}`)
+      }
+
+      // 🟢 拿到第一个字节的时间（后端已 flushHeaders，这里就是感知延迟）
+      console.log(`[TTS] 后端响应 ${res.status} — 首字节延迟 ${(performance.now() - startedAt).toFixed(0)}ms`)
+
+      // 用 ReadableStream 边收边攒 Uint8Array
+      const reader = res.body.getReader()
+      const chunks = []
+      let totalBytes = 0
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        chunks.push(value)
+        totalBytes += value.byteLength
+      }
+
+      if (totalBytes === 0) throw new Error('TTS 返回空音频')
+
+      // 合成 Blob → Audio
+      const blob = new Blob(chunks, { type: 'audio/mpeg' })
+      const url = URL.createObjectURL(blob)
+
+      // 销毁旧的
+      if (audioRef.current?.src) URL.revokeObjectURL(audioRef.current.src)
+
+      const audio = new Audio(url)
+      audioRef.current = audio
+
+      audio.onended = () => setTtsPlaying(false)
+      try {
+        await audio.play()
+        setTtsPlaying(true)
+      } catch {
+        setTtsPlaying(false)
+      }
+
+      console.log(`[TTS] 播放启动 — 总 ${totalBytes} 字节 — 首字节到播放启动 ${(performance.now() - startedAt).toFixed(0)}ms`)
+    } catch (err) {
+      console.warn('[TTS] 讲解朗读失败:', err.message)
+      alert('语音朗读暂时不可用，请稍后再试 🎤')
+    } finally {
+      setTtsLoading(false)
+    }
+  }, [bank?.explanation])
+
+  // 切换讲解内容（换知识点/换题）时，把正在播放的音频停掉
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      if (audioRef.current.src) URL.revokeObjectURL(audioRef.current.src)
+      audioRef.current = null
+    }
+    setTtsPlaying(false)
+  }, [topic?.id, currentIdx])
+
   return (
     <>
       {/* 顶部栏 */}
@@ -242,13 +339,43 @@ function TopicDetail() {
         <>
           {/* ① 讲解卡 */}
           <section className="mt-4 overflow-hidden rounded-3xl bg-gradient-to-br from-sky-100 via-violet-100 to-fuchsia-100 p-4 shadow-sm ring-1 ring-violet-100/60">
-            <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/80 text-sm shadow-sm">
-                📖
-              </span>
-              <p className="text-[11px] font-bold tracking-wider text-violet-600">
-                小老师讲一讲
-              </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/80 text-sm shadow-sm">
+                  📖
+                </span>
+                <p className="text-[11px] font-bold tracking-wider text-violet-600">
+                  小老师讲一讲
+                </p>
+              </div>
+
+              {/* 🔊 语音朗读按钮 */}
+              <button
+                type="button"
+                onClick={handleToggleTTS}
+                disabled={ttsLoading}
+                aria-label={ttsPlaying ? '暂停朗读' : '朗读讲解'}
+                className={`group inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition active:scale-95 disabled:opacity-60 ${
+                  ttsPlaying
+                    ? 'bg-violet-500 text-white shadow-md shadow-violet-300/60'
+                    : 'bg-white/80 text-violet-600 ring-1 ring-violet-200 hover:bg-violet-50'
+                }`}
+              >
+                {ttsLoading ? (
+                  <>
+                    <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-violet-300 border-t-transparent" />
+                    加载中
+                  </>
+                ) : ttsPlaying ? (
+                  <>
+                    🎵 正在朗读…
+                  </>
+                ) : (
+                  <>
+                    🔊 听语音
+                  </>
+                )}
+              </button>
             </div>
             <p className="mt-3 text-[15px] leading-relaxed text-slate-700">
               {bank.explanation}
