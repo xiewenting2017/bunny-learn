@@ -74,6 +74,17 @@ const STORIES = {
     summary: '公明仪对老牛弹高雅的曲子，老牛只顾吃草，根本听不懂。',
     moral: '说话要看对象，对着不懂的人讲，就是白费口舌。',
   },
+  shouzhu: {
+    title: '守株待兔',
+    subtitle: '农夫的傻运气',
+    image: `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(
+      "Children's storybook watercolor illustration, a Chinese farmer in straw hat sitting by a tree stump in a rice field, a white rabbit running in the distance, warm autumn afternoon, cute gentle style, soft pastel colors, no text",
+    )}&image_size=landscape_16_9`,
+    story:
+      '从前有个农夫，每天早出晚归，在田里辛苦地劳作。有一天，他正在田里干活，忽然看见一只白色的小兔子从草丛里跑出来。那只兔子跑得太快了，没注意到前面有一个树桩，砰的一声撞在了树桩上，当场就死了。农夫高兴极了，跑过去捡起兔子，晚上回家吃了一顿香喷喷的兔肉。第二天，农夫又去田里干活。可是他干了一会儿就想：昨天我白捡了一只兔子，今天说不定还能再捡到一只呢！于是他就坐在树桩旁边等起来，等着有兔子再撞上来。他等啊等，等啊等，一整天过去了，再也没有兔子撞上来。可是他的田地却因为他一直没干活，长满了野草。大家都笑话他：哪有那么多兔子会撞树桩呀？',
+    summary: '农夫捡到一只撞死的兔子后，天天守在树桩边等，田地都荒废了。',
+    moral: '意外的好运气不会天天有，想要收获就要自己努力。',
+  },
 }
 
 function IdiomStory({ idiom, onBack, onFinish }) {
