@@ -1,10 +1,11 @@
+import { gradeLabelOf } from '../data/grades'
 import KnowledgeList from './KnowledgeList'
 
 function ChineseContents({ grade, onBack, onOpenIdioms }) {
-  const gradeLabel = grade === 'grade-2' ? '二年级' : '一年级'
+  const title = `语文 · ${gradeLabelOf(grade)}`
   return (
     <KnowledgeList
-      title={`语文 · ${gradeLabel}`}
+      title={title}
       subject="chinese"
       grade={grade}
       onBack={onBack}

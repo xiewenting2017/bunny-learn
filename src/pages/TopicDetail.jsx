@@ -14,6 +14,15 @@ import { throttle } from '../utils/debounce'
 // muted: 答对后其他选项变暗
 const LETTER_LABELS = ['A', 'B', 'C', 'D', 'E']
 
+// 可选：按知识点 ID 配置讲解插图，图片放在 public/images/explanations/ 下。
+// 不配置或 src 为空时，自动显示纯 CSS 小兔老师动画。
+const EXPLANATION_IMAGES = {
+  // numbers_1_5: {
+  //   src: '/images/explanations/numbers-1-5.png',
+  //   alt: '用苹果认识数字 1 到 5',
+  // },
+}
+
 function TopicDetail() {
   const { subject, id } = useParams()
   const navigate = useNavigate()
@@ -157,6 +166,7 @@ function TopicDetail() {
   }
 
   const isCorrect = Boolean(question) && answer === question.answer
+  const explanationImage = EXPLANATION_IMAGES[topic.id]
 
   // 【开发期调试用】点击后在控制台打印当前 AI 返回的原始数据
   const handleReportContent = () => {
@@ -165,7 +175,7 @@ function TopicDetail() {
       return
     }
     console.log('🐰 === AI 原始数据（仅供开发调试）===')
-    console.log('学科:', topic?.subjectName, '| 年级:', '一年级', '| 知识点:', topic?.name)
+    console.log('学科:', topic?.subjectName, '| 年级:', topic?.grade, '| 知识点:', topic?.name)
     console.log(JSON.stringify(lastRawResponse, null, 2))
     console.log('🐰 ==========================================')
     // eslint-disable-next-line no-alert
@@ -374,6 +384,35 @@ function TopicDetail() {
               >
                 {ttsPlaying ? '🎵 正在朗读…' : '🔊 听语音'}
               </button>
+            </div>
+            {/* 可选讲解插图；无图时使用纯 CSS 动画图标 */}
+            <div className="mt-3 overflow-hidden rounded-2xl bg-white/60 ring-1 ring-white/80">
+              {explanationImage?.src ? (
+                <img
+                  src={explanationImage.src}
+                  alt={explanationImage.alt || `${topic.name}讲解插图`}
+                  loading="lazy"
+                  decoding="async"
+                  className="max-h-72 w-full object-contain"
+                />
+              ) : (
+                <div className="teacher-mascot" aria-hidden="true">
+                  <span className="teacher-mascot__spark teacher-mascot__spark--left" />
+                  <span className="teacher-mascot__spark teacher-mascot__spark--right" />
+                  <div className="teacher-mascot__bunny">
+                    <span className="teacher-mascot__ear teacher-mascot__ear--left" />
+                    <span className="teacher-mascot__ear teacher-mascot__ear--right" />
+                    <div className="teacher-mascot__face">
+                      <span className="teacher-mascot__eyes" />
+                      <span className="teacher-mascot__nose" />
+                    </div>
+                    <div className="teacher-mascot__book">
+                      <span className="teacher-mascot__page teacher-mascot__page--left" />
+                      <span className="teacher-mascot__page teacher-mascot__page--right" />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <p className="mt-3 text-[15px] leading-relaxed text-slate-700">
               {bank.explanation}

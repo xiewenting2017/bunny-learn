@@ -1,5 +1,6 @@
 import { chineseData } from './chinese.js'
 import { englishData } from './english.js'
+import { gradeLabelOf } from './grades.js'
 import { knowledgeData } from './knowledgeData.js'
 import { scienceData } from './science.js'
 
@@ -37,12 +38,12 @@ export function getTopic(subject, id) {
   }
 }
 
-// grade: 'grade-1' | 'grade-2' → 只返回对应年级的条目
+// grade: 'grade-1' | 'grade-2' | 'grade-3' → 只返回对应年级的条目
 // 不传 grade → 返回全部（兼容旧调用）
 export function getKnowledgeList(subject, grade) {
   const list = SUBJECT_DATA[subject] ?? []
   if (!grade) return list
 
-  const gradeLabel = grade === 'grade-2' ? '二年级' : '一年级'
+  const gradeLabel = gradeLabelOf(grade)
   return list.filter((item) => item.grade?.startsWith(gradeLabel))
 }
