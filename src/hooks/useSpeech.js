@@ -49,7 +49,7 @@ async function checkBackendTTS() {
   return backendStatus
 }
 
-function pickBestChineseVoice() {
+export function pickBestChineseVoice() {
   if (!NATIVE_TTS) return null
   const voices = window.speechSynthesis.getVoices()
   if (!voices.length) return null

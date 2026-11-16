@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getTopic } from '../data/curriculum'
 import { getTopicBank } from '../data/questionBankLoader'
+import { pickBestChineseVoice } from '../hooks/useSpeech'
 import { throttle } from '../utils/debounce'
 
 // 选项视觉状态 —— 每种状态配一个字母标签色 + 背景 + ring
@@ -26,12 +27,22 @@ function TopicDetail() {
   const [lastRawResponse, setLastRawResponse] = useState(null)
   const [currentIdx, setCurrentIdx] = useState(0)  // 当前是第几轮（0-based）
   const [roundDone, setRoundDone] = useState(false)  // 一整轮做完了
-  const [ttsLoading, setTtsLoading] = useState(false)
   const [ttsPlaying, setTtsPlaying] = useState(false)
+  const [toast, setToast] = useState('')
 
-  // Audio 实例，切换讲解内容时要 stop 再重新 play
-  const audioRef = useRef(null)
+  // 每次开始/停止朗读都会递增，用于丢弃旧朗读的回调
+  const ttsTokenRef = useRef(0)
+  const toastTimerRef = useRef(null)
   const loadKeyRef = useRef(null)
+
+  // 页面内轻提示（替代 alert）
+  const showToast = useCallback((message) => {
+    setToast(message)
+    clearTimeout(toastTimerRef.current)
+    toastTimerRef.current = setTimeout(() => setToast(''), 2600)
+  }, [])
+
+  useEffect(() => () => clearTimeout(toastTimerRef.current), [])
 
   // 按顺序轮询：round-robin，0→1→2→3→4→0（回到0时触发 roundDone）
   const goToNext = useCallback((record) => {
@@ -161,102 +172,103 @@ function TopicDetail() {
     alert('已在浏览器控制台打印 AI 原始数据，请按 F12 查看 🐰')
   }
 
-  // 切换播放/暂停 —— 流式 fetch /api/tts，边收边播
-  const handleToggleTTS = useCallback(async () => {
-    const text = bank?.explanation
+  // 切换朗读：使用浏览器原生 Web Speech API（zh-CN，语速放慢到 0.8）
+  const handleToggleTTS = useCallback(() => {
+    const text = bank?.explanation?.trim()
     if (!text) return
 
-    // 正在播放 → 暂停
-    if (audioRef.current && !audioRef.current.paused) {
-      audioRef.current.pause()
+    // 浏览器不支持或被禁用 → 页面内 Toast，不用 alert
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      showToast('当前浏览器不支持语音朗读')
+      return
+    }
+
+    // 正在朗读 → 点一下停止
+    if (ttsPlaying || window.speechSynthesis.speaking) {
+      ttsTokenRef.current += 1
+      window.speechSynthesis.cancel()
       setTtsPlaying(false)
       return
     }
 
-    // 已经缓存了 audio src 但被暂停过 → 直接 resume
-    if (audioRef.current && audioRef.current.src) {
-      try {
-        await audioRef.current.play()
-        setTtsPlaying(true)
-      } catch {
+    const token = ++ttsTokenRef.current
+    window.speechSynthesis.cancel()
+
+    // 按标点切句，避免 Chrome 长文本朗读被截断
+    const chunks = (text.match(/[^。！？；!?;\n]+[。！？；!?;]?/g) ?? [text])
+      .map((s) => s.trim())
+      .filter(Boolean)
+
+    let index = 0
+
+    const speakNext = () => {
+      if (ttsTokenRef.current !== token) return
+      if (index >= chunks.length) {
         setTtsPlaying(false)
+        return
       }
-      return
+
+      const utterance = new SpeechSynthesisUtterance(chunks[index++])
+      utterance.lang = 'zh-CN'
+      const voice = pickBestChineseVoice()
+      if (voice) utterance.voice = voice
+      utterance.rate = 0.8   // 慢一点，适合小朋友
+      utterance.pitch = 1.0
+
+      utterance.onstart = () => {
+        if (ttsTokenRef.current === token) setTtsPlaying(true)
+      }
+      utterance.onend = speakNext
+      utterance.onerror = (event) => {
+        if (ttsTokenRef.current !== token) return
+        // 主动 cancel 会触发 canceled/interrupted，属于正常停止
+        if (event?.error === 'canceled' || event?.error === 'interrupted') return
+        setTtsPlaying(false)
+        if (event?.error === 'not-allowed' || event?.error === 'not-supported') {
+          showToast('当前浏览器不支持语音朗读')
+        } else {
+          showToast('语音播放失败，请稍后再试')
+        }
+      }
+
+      window.speechSynthesis.speak(utterance)
     }
 
-    // 第一次播放 → 流式 fetch
-    setTtsLoading(true)
-    const startedAt = performance.now()
+    speakNext()
+  }, [bank?.explanation, ttsPlaying, showToast])
 
-    try {
-      const res = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-        signal: AbortSignal.timeout(20000),
-      })
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error || `TTS ${res.status}`)
-      }
-
-      // 🟢 拿到第一个字节的时间（后端已 flushHeaders，这里就是感知延迟）
-      console.log(`[TTS] 后端响应 ${res.status} — 首字节延迟 ${(performance.now() - startedAt).toFixed(0)}ms`)
-
-      // 用 ReadableStream 边收边攒 Uint8Array
-      const reader = res.body.getReader()
-      const chunks = []
-      let totalBytes = 0
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        chunks.push(value)
-        totalBytes += value.byteLength
-      }
-
-      if (totalBytes === 0) throw new Error('TTS 返回空音频')
-
-      // 合成 Blob → Audio
-      const blob = new Blob(chunks, { type: 'audio/mpeg' })
-      const url = URL.createObjectURL(blob)
-
-      // 销毁旧的
-      if (audioRef.current?.src) URL.revokeObjectURL(audioRef.current.src)
-
-      const audio = new Audio(url)
-      audioRef.current = audio
-
-      audio.onended = () => setTtsPlaying(false)
-      try {
-        await audio.play()
-        setTtsPlaying(true)
-      } catch {
-        setTtsPlaying(false)
-      }
-
-      console.log(`[TTS] 播放启动 — 总 ${totalBytes} 字节 — 首字节到播放启动 ${(performance.now() - startedAt).toFixed(0)}ms`)
-    } catch (err) {
-      console.warn('[TTS] 讲解朗读失败:', err.message)
-      alert('语音朗读暂时不可用，请稍后再试 🎤')
-    } finally {
-      setTtsLoading(false)
-    }
-  }, [bank?.explanation])
-
-  // 切换讲解内容（换知识点/换题）时，把正在播放的音频停掉
+  // 切换讲解内容（换知识点/换题）时，停止正在朗读的语音
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.pause()
-      if (audioRef.current.src) URL.revokeObjectURL(audioRef.current.src)
-      audioRef.current = null
+    ttsTokenRef.current += 1
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
     }
     setTtsPlaying(false)
   }, [topic?.id, currentIdx])
 
+  // 离开页面时停止朗读
+  useEffect(() => {
+    return () => {
+      ttsTokenRef.current += 1
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
+    }
+  }, [])
+
   return (
     <>
+      {/* 顶部轻提示 Toast（替代 alert） */}
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed left-1/2 top-6 z-50 -translate-x-1/2 rounded-full bg-slate-800/90 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-slate-900/20 backdrop-blur"
+        >
+          {toast}
+        </div>
+      )}
+
       {/* 顶部栏 */}
       <div className="grid grid-cols-3 items-center">
         <button
@@ -353,28 +365,14 @@ function TopicDetail() {
               <button
                 type="button"
                 onClick={handleToggleTTS}
-                disabled={ttsLoading}
-                aria-label={ttsPlaying ? '暂停朗读' : '朗读讲解'}
-                className={`group inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition active:scale-95 disabled:opacity-60 ${
+                aria-label={ttsPlaying ? '停止朗读' : '朗读讲解'}
+                className={`group inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition active:scale-95 ${
                   ttsPlaying
                     ? 'bg-violet-500 text-white shadow-md shadow-violet-300/60'
                     : 'bg-white/80 text-violet-600 ring-1 ring-violet-200 hover:bg-violet-50'
                 }`}
               >
-                {ttsLoading ? (
-                  <>
-                    <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-violet-300 border-t-transparent" />
-                    加载中
-                  </>
-                ) : ttsPlaying ? (
-                  <>
-                    🎵 正在朗读…
-                  </>
-                ) : (
-                  <>
-                    🔊 听语音
-                  </>
-                )}
+                {ttsPlaying ? '🎵 正在朗读…' : '🔊 听语音'}
               </button>
             </div>
             <p className="mt-3 text-[15px] leading-relaxed text-slate-700">

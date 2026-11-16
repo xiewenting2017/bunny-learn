@@ -268,7 +268,7 @@ export const englishData = [
 
   // ── 二年级上册 ──
   { id: 'greetings_review', name: '问候与告别', module: '问候', grade: '二年级上册' },
-  { id: 'numbers_11_20', name: 'Numbers 11-20', module: '数字', grade: '二年级上册' },
+  { id: 'en_numbers_11_20', name: 'Numbers 11-20', module: '数字', grade: '二年级上册' },
   { id: 'colors_review', name: '颜色复习', module: '颜色', grade: '二年级上册' },
   { id: 'stationery', name: 'Pencil, Ruler, Eraser, Bag', module: '文具', grade: '二年级上册' },
   { id: 'family_extended', name: 'Father, Mother, Brother, Sister, Grandpa, Grandma', module: '家庭', grade: '二年级上册' },
